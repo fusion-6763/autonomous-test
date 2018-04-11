@@ -8,10 +8,19 @@
 package org.usfirst.frc.team6763.robot;
 
 import edu.wpi.first.wpilibj.IterativeRobot;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.Spark;
+import edu.wpi.first.wpilibj.Encoder;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+
+import org.usfirst.frc.team6763.robot.Instruction.State;
+
+import com.kauailabs.navx.frc.AHRS;
 
 /**
  * The VM is configured to automatically run this class, and to call the
@@ -27,7 +36,17 @@ public class Robot extends IterativeRobot {
 	private SendableChooser<String> m_chooser = new SendableChooser<>();
 	
 	DifferentialDrive myRobot = new DifferentialDrive(new Spark(0), new Spark(1));
-
+	
+	Encoder leftEncoder = new Encoder(0, 1);
+	Encoder rightEncoder = new Encoder(2, 3);
+	
+	AHRS navx = new AHRS(SerialPort.Port.kUSB);
+	
+	ArrayList<Instruction> autoMode;
+	
+	int instructionIndex = 0;
+	
+	double defaultSpeed = 0.8;
 	/**
 	 * This function is run when the robot is first started up and should be
 	 * used for any initialization code.
@@ -59,7 +78,58 @@ public class Robot extends IterativeRobot {
 		// defaultAuto);
 		System.out.println("Auto selected: " + m_autoSelected);
 		
-		populateSmartDashboard();
+		//populateSmartDashboard();
+		
+		double distance1 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle1 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle1 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		double distance2 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle2 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle2 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		double distance3 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle3 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle3 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		double distance4 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle4 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle4 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		double distance5 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle5 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle5 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		double distance6 = SmartDashboard.getNumber("Distance 1", 0);
+		double targetAngle6 = SmartDashboard.getNumber("Target Angle 1", 0);
+		double turnAngle6 = SmartDashboard.getNumber("Turn Angle 1", 0);
+		
+		autoMode = new ArrayList<Instruction>(Arrays.asList(
+				new Instruction((distance1 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance1, targetAngle1),
+				new Instruction((turnAngle1 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle1),
+				
+				new Instruction((distance2 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance2, targetAngle2),
+				new Instruction((turnAngle2 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle2),
+				
+				new Instruction((distance3 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance3, targetAngle3),
+				new Instruction((turnAngle3 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle3),
+				
+				new Instruction((distance4 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance4, targetAngle4),
+				new Instruction((turnAngle4 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle4),
+				
+				new Instruction((distance5 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance5, targetAngle5),
+				new Instruction((turnAngle5 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle5),
+				
+				new Instruction((distance6 > 0) ? State.DRIVE_FORWARD : State.DRIVE_BACKWARD, distance6, targetAngle6),
+				new Instruction((turnAngle6 > 0) ? State.SPIN_RIGHT : State.SPIN_LEFT, 0, turnAngle6),
+				
+				new Instruction(State.STOP, 0, 0)));
+		
+		leftEncoder.reset();
+		rightEncoder.reset();
+		navx.reset();
+		
+		instructionIndex = 0;
 	}
 
 	/**
@@ -67,6 +137,54 @@ public class Robot extends IterativeRobot {
 	 */
 	@Override
 	public void autonomousPeriodic() {
+		Instruction instruction = new Instruction(State.STOP ,0, 0);
+		if(instructionIndex < autoMode.size()) {
+			instruction = autoMode.get(instructionIndex);
+		}
+		switch(instruction.getState()) {
+			case DRIVE_FORWARD:
+				if(leftEncoder.get() < instruction.getLimit()) {
+					accurateDrive(navx.getYaw(), defaultSpeed, instruction.getTargetAngle(), 2);
+				}
+				else {
+					leftEncoder.reset();
+					rightEncoder.reset();
+					instructionIndex++;
+				}
+				break;
+			case DRIVE_BACKWARD:
+				if(leftEncoder.get() > instruction.getLimit()) {
+					accurateDrive(navx.getYaw(), defaultSpeed, instruction.getTargetAngle(), 2);
+				}
+				else {
+					leftEncoder.reset();
+					rightEncoder.reset();
+					instructionIndex++;
+				}
+			case SPIN_LEFT:
+				if(navx.getYaw() > instruction.getTargetAngle()) {
+					myRobot.tankDrive(-defaultSpeed, defaultSpeed);
+				}
+				else {
+					leftEncoder.reset();
+					rightEncoder.reset();
+					instructionIndex++;
+				}
+				break;
+			case SPIN_RIGHT:
+				if(navx.getYaw() < instruction.getTargetAngle()) {
+					myRobot.tankDrive(defaultSpeed, -defaultSpeed);
+				}
+				else {
+					leftEncoder.reset();
+					rightEncoder.reset();
+					instructionIndex++;
+				}
+			case STOP: //Intentional fall-through
+			default:
+				myRobot.tankDrive(0.0, 0.0);
+				break;
+		}
 		
 	}
 
@@ -110,5 +228,21 @@ public class Robot extends IterativeRobot {
 		SmartDashboard.putNumber("Turn Angle 6", 0);
 		
 		
+	}
+	
+	public void accurateDrive(final float gyroValue, final double speed, final double targetAngle, final int tolerance) {
+		System.out.println("speed: "+speed);
+		if(gyroValue < targetAngle - tolerance) {
+			System.out.println("Too far left");
+			myRobot.tankDrive(speed, speed / 4);
+		}
+		else if(gyroValue > targetAngle + tolerance) {
+			System.out.println("Too far right");
+			myRobot.tankDrive(speed / 4, speed);
+		}
+		else {
+			System.out.println("Good");
+			myRobot.tankDrive(speed, speed);
+		}
 	}
 }

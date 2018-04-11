@@ -6,15 +6,15 @@ public class Instruction {
 	
 	private State _state;
 	private double _limit;
-	private float _targetAngle;
+	private double _targetAngle;
 	
 	/**
 	 * Creates a new Instruction instance.
 	 */
-	public Instruction(final State state, final double limit, final float targetAngle) {
+	public Instruction(final State state, final double limit, final double targetAngle1) {
 		_state = state;
 		_limit = limit;
-		_targetAngle = targetAngle;
+		_targetAngle = targetAngle1;
 	}
 	
 	public State getState() {
@@ -25,7 +25,7 @@ public class Instruction {
 		return _limit;
 	}
 	
-	public float getTargetAngle() {
+	public double getTargetAngle() {
 		return _targetAngle;
 	}
 	
